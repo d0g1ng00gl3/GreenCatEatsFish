@@ -171,7 +171,6 @@ namespace {
   constexpr Score TrappedRook        = S( 96,  4);
   constexpr Score WeakQueen          = S( 49, 15);
   constexpr Score WeakUnopposedPawn  = S( 12, 23);
-  constexpr Score WeakBishop         = S( 30, 10);
 
 #undef S
 
@@ -284,7 +283,6 @@ namespace {
     constexpr Direction Down = (Us == WHITE ? SOUTH : NORTH);
     constexpr Bitboard OutpostRanks = (Us == WHITE ? Rank4BB | Rank5BB | Rank6BB
                                                    : Rank5BB | Rank4BB | Rank3BB);
-
     const Square* pl = pos.squares<Pt>(Us);
 
     Bitboard b, bb;
@@ -347,9 +345,6 @@ namespace {
                 // Bonus for bishop on a long diagonal which can "see" both center squares
                 if (more_than_one(attacks_bb<BISHOP>(s, pos.pieces(PAWN)) & Center))
                     score += LongDiagonalBishop;
-
-				if (!more_than_one(attacks_bb<BISHOP>(s, pos.pieces()) & ~attackedBy[Them][PAWN]))
-					score -= WeakBishop;
             }
 
             // An important Chess960 pattern: A cornered bishop blocked by a friendly
@@ -477,7 +472,10 @@ namespace {
                  - 873 * !pos.count<QUEEN>(Them)
                  -   6 * mg_value(score) / 8
                  +       mg_value(mobility[Them] - mobility[Us])
-                 -   30;
+                 +       pos.count<ALL_PIECES>(Them)
+                 -   60;
+    
+    //dbg_mean_of(pos.count<ALL_PIECES>(Them));
 
     // Transform the kingDanger units into a Score, and subtract it from the evaluation
     if (kingDanger > 0)
