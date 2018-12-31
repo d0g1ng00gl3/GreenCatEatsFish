@@ -171,6 +171,7 @@ namespace {
   constexpr Score TrappedRook        = S( 96,  4);
   constexpr Score WeakQueen          = S( 49, 15);
   constexpr Score WeakUnopposedPawn  = S( 12, 23);
+  constexpr Score WeakBishop         = S( 30, 10);
 
 #undef S
 
@@ -283,6 +284,7 @@ namespace {
     constexpr Direction Down = (Us == WHITE ? SOUTH : NORTH);
     constexpr Bitboard OutpostRanks = (Us == WHITE ? Rank4BB | Rank5BB | Rank6BB
                                                    : Rank5BB | Rank4BB | Rank3BB);
+
     const Square* pl = pos.squares<Pt>(Us);
 
     Bitboard b, bb;
@@ -345,6 +347,9 @@ namespace {
                 // Bonus for bishop on a long diagonal which can "see" both center squares
                 if (more_than_one(attacks_bb<BISHOP>(s, pos.pieces(PAWN)) & Center))
                     score += LongDiagonalBishop;
+
+				if (!more_than_one(attacks_bb<BISHOP>(s, pos.pieces()) & ~attackedBy[Them][PAWN]))
+					score -= WeakBishop;
             }
 
             // An important Chess960 pattern: A cornered bishop blocked by a friendly
@@ -741,18 +746,12 @@ namespace {
     bool pawnsOnBothFlanks =   (pos.pieces(PAWN) & QueenSide)
                             && (pos.pieces(PAWN) & KingSide);
 
-    bool materialDiff = (   pos.count<PAWN  >(WHITE) != pos.count<PAWN  >(BLACK)
-                         || pos.count<KNIGHT>(WHITE) + pos.count<BISHOP>(WHITE)
-                              != pos.count<KNIGHT>(BLACK) + pos.count<BISHOP>(BLACK)
-                         || pos.count<ROOK  >(WHITE) != pos.count<ROOK  >(BLACK));
-
     // Compute the initiative bonus for the attacking side
     int complexity =   8 * pe->pawn_asymmetry()
                     + 12 * pos.count<PAWN>()
                     + 12 * outflanking
                     + 16 * pawnsOnBothFlanks
                     + 48 * !pos.non_pawn_material()
-                    +  8 * materialDiff
                     -118 ;
 
     // Now apply the bonus: note that we find the attacking side by extracting
