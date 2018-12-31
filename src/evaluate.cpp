@@ -403,6 +403,8 @@ namespace {
     constexpr Color    Them = (Us == WHITE ? BLACK : WHITE);
     constexpr Bitboard Camp = (Us == WHITE ? AllSquares ^ Rank6BB ^ Rank7BB ^ Rank8BB
                                            : AllSquares ^ Rank1BB ^ Rank2BB ^ Rank3BB);
+    constexpr Bitboard AntiCamp = (Us == WHITE ? Rank2BB | Rank3BB | Rank4BB | Rank5BB
+                                           : Rank4BB | Rank5BB | Rank6BB | Rank7BB);
 
     const Square ksq = pos.square<KING>(Us);
     Bitboard kingFlank, weak, b, b1, b2, safe, unsafeChecks;
@@ -464,18 +466,18 @@ namespace {
     // the square is in the attacker's mobility area.
     unsafeChecks &= mobilityArea[Them];
 
+    int defensiveAttacks = popcount(((attackedBy[Us][ALL_PIECES] & ~attackedBy[Us][KING]) | attackedBy2[Us]) & kingFlank & AntiCamp);
+
     kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
                  +  69 * kingAttacksCount[Them]
                  + 185 * popcount(kingRing[Us] & weak)
                  + 150 * popcount(pos.blockers_for_king(Us) | unsafeChecks)
                  +       tropism * tropism / 4
+                 -       defensiveAttacks * defensiveAttacks * 3 / 4
                  - 873 * !pos.count<QUEEN>(Them)
                  -   6 * mg_value(score) / 8
                  +       mg_value(mobility[Them] - mobility[Us])
-                 +       pos.count<ALL_PIECES>(Them)
-                 -   60;
-    
-    //dbg_mean_of(pos.count<ALL_PIECES>(Them));
+                 -   30;
 
     // Transform the kingDanger units into a Score, and subtract it from the evaluation
     if (kingDanger > 0)
