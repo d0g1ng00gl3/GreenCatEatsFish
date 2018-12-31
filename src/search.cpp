@@ -3,17 +3,14 @@
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
   Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
-
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
-
   Stockfish is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -256,19 +253,21 @@ void MainThread::search() {
   {
       std::map<Move, int64_t> votes;
       Value minScore = this->rootMoves[0].score;
+      Depth minDepth = this->completedDepth;
 
       // Find out minimum score and reset votes for moves which can be voted
       for (Thread* th: Threads)
       {
           minScore = std::min(minScore, th->rootMoves[0].score);
+          minDepth = std::min(minDepth, th->completedDepth);
           votes[th->rootMoves[0].pv[0]] = 0;
       }
 
       // Vote according to score and depth
       auto square = [](int64_t x) { return x * x; };
       for (Thread* th : Threads)
-          votes[th->rootMoves[0].pv[0]] += 200 + (square(th->rootMoves[0].score - minScore + 1)
-                                                  * int64_t(th->completedDepth));
+          votes[th->rootMoves[0].pv[0]] += 200 + square(th->rootMoves[0].score - minScore + 1)
+                                               * int64_t(th->completedDepth * 3 - minDepth * 2);
 
       // Select best thread
       int64_t bestVote = votes[this->rootMoves[0].pv[0]];
